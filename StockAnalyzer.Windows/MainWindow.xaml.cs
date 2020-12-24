@@ -27,12 +27,12 @@ namespace StockAnalyzer.Windows
 
 
 
-        private void Search_Click(object sender, RoutedEventArgs e)
+        private async void Search_Click(object sender, RoutedEventArgs e)
         {
             try
             {
                 BeforeLoadingStockData();
-                Task.Run(() =>
+                await Task.Run(() =>
                 {
                     var lines = File.ReadAllLines("StockPrices_Small.csv");
                     var data = new List<StockPrice>();
