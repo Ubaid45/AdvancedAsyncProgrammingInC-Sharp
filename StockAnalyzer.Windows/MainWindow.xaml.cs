@@ -43,6 +43,10 @@ namespace StockAnalyzer.Windows
             try
             {
                 cancellationTokenSource = new CancellationTokenSource();
+                cancellationTokenSource.Token.Register(() =>
+                {
+                    Notes.Text = "Cancellation requested";
+                });
                 Search.Content = "Cancel";
 
                 BeforeLoadingStockData();
@@ -73,9 +77,7 @@ namespace StockAnalyzer.Windows
                         });
 
                     },
-                    cancellationTokenSource.Token,
-                    TaskContinuationOptions.OnlyOnRanToCompletion,
-                    TaskScheduler.Current);
+                    TaskContinuationOptions.OnlyOnRanToCompletion);
 
                 processedData.ContinueWith(_ =>
                 {
