@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using StockAnalyzer.Core;
 using StockAnalyzer.Core.Domain;
+using StockAnalyzer.Core.Services;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -28,7 +29,7 @@ namespace StockAnalyzer.Windows
 
         CancellationTokenSource cancellationTokenSource;
 
-        private void Search_Click(object sender, RoutedEventArgs e)
+        private async void Search_Click(object sender, RoutedEventArgs e)
         {
             if (cancellationTokenSource != null)
             {
@@ -50,50 +51,20 @@ namespace StockAnalyzer.Windows
                 Search.Content = "Cancel";
 
                 BeforeLoadingStockData();
-                Task<List<string>> readAllLinesTask = SearchForStocks(cancellationTokenSource.Token);
 
-                readAllLinesTask.ContinueWith(t =>
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        Notes.Text = t.Exception.InnerException.Message;
-                    });
-                }, TaskContinuationOptions.OnlyOnFaulted);
+                var service = new StockService();
 
-                var processedData = readAllLinesTask
-                    .ContinueWith(completedTask =>
-                    {
-                        var lines = completedTask.Result;
-                        var data = new List<StockPrice>();
-
-                        foreach (var line in lines.Skip(1))
-                        {
-                            var price = StockPrice.FromCSV(line);
-                            data.Add(price);
-                        }
-                        Dispatcher.Invoke(() =>
-                        {
-                            Stocks.ItemsSource = data.Where(sp => sp.Identifier == StockIdentifier.Text);
-                        });
-
-                    },
-                    TaskContinuationOptions.OnlyOnRanToCompletion);
-
-                processedData.ContinueWith(_ =>
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        AfterLoadingStockData();
-                        cancellationTokenSource = null;
-                        Search.Content = "Search";
-                    });
-                });
-
+                var data = await service.GetStockPricesFor(StockIdentifier.Text, cancellationTokenSource.Token);
+                Stocks.ItemsSource = data;
 
             }
             catch (Exception ex)
             {
                 Notes.Text = ex.Message;
+            }
+            finally
+            {
+                AfterLoadingStockData();
             }
 
 
