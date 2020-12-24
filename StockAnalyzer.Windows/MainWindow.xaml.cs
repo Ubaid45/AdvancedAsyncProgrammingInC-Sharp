@@ -53,7 +53,7 @@ namespace StockAnalyzer.Windows
                 BeforeLoadingStockData();
 
                 var identifiers = StockIdentifier.Text.Split(',', ' ');
-                var service = new StockService();
+                var service = new MockStockService();
                 var loadingTasks = new List<Task<IEnumerable<StockPrice>>>();
 
                 foreach (var identifier in identifiers)
@@ -82,6 +82,9 @@ namespace StockAnalyzer.Windows
             finally
             {
                 AfterLoadingStockData();
+                cancellationTokenSource = null;
+
+                Search.Content = "Search";
             }
 
 
