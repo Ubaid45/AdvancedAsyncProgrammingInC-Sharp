@@ -27,23 +27,38 @@ namespace StockAnalyzer.Windows
 
         private async void Search_Click(object sender, RoutedEventArgs e)
         {
-            BeforeLoadingStockData();
+            try
+            {
+                BeforeLoadingStockData();
+                var data = GetStocks();
+                await data;
+            }
+            catch(Exception ex)
+            {
+                Notes.Text = ex.Message;
+            }
+            finally
+            {
+                AfterLoadingStockData();
+            }
+
+
+        }
+
+        private async Task GetStocks()
+        {
             try
             {
                 var store = new DataStore();
                 var responseTask = store.GetStockPrices(StockIdentifier.Text);
                 Stocks.ItemsSource = await responseTask;
             }
-            
-            catch(Exception ex)
+
+            catch (Exception ex)
             {
-                Notes.Text = ex.Message;
+                throw ex;
             }
-
-            AfterLoadingStockData();
         }
-
-
 
 
 
