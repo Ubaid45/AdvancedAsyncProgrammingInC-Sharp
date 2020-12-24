@@ -35,7 +35,7 @@ namespace StockAnalyzer.Windows
 
                 var readAllLinesTask = Task.Run(async () =>
                 {
-                    using (var stream = new StreamReader(File.OpenRead("StockPrices_Small.csv")))
+                    using (var stream = new StreamReader(File.OpenRead(" Not StockPrices_Small.csv")))
                     {
                         var lines = new List<string>();
                         string line;
@@ -48,6 +48,13 @@ namespace StockAnalyzer.Windows
                         return lines;
                     }
                 });
+
+                readAllLinesTask.ContinueWith(t =>
+                {
+                    Dispatcher.Invoke(() => {
+                        Notes.Text = t.Exception.InnerException.Message;
+                    });
+                }, TaskContinuationOptions.OnlyOnFaulted);
 
                 var processedData = readAllLinesTask.ContinueWith(completedTask =>
                 {
@@ -63,7 +70,7 @@ namespace StockAnalyzer.Windows
                         Stocks.ItemsSource = data.Where(sp => sp.Identifier == StockIdentifier.Text);
                     });
 
-                });
+                }, TaskContinuationOptions.OnlyOnRanToCompletion);
 
                 processedData.ContinueWith(_ =>
                {
