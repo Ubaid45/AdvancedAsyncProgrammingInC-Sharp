@@ -52,10 +52,18 @@ namespace StockAnalyzer.Windows
 
                 BeforeLoadingStockData();
 
+                var identifiers = StockIdentifier.Text.Split(',', ' ');
                 var service = new StockService();
+                var loadingTasks = new List<Task<IEnumerable<StockPrice>>>();
 
-                var data = await service.GetStockPricesFor(StockIdentifier.Text, cancellationTokenSource.Token);
-                Stocks.ItemsSource = data;
+                foreach (var identifier in identifiers)
+                {
+                    var data = service.GetStockPricesFor(identifier, cancellationTokenSource.Token);
+                    loadingTasks.Add(data);
+                }
+                var allStocks = await Task.WhenAll(loadingTasks);
+
+                Stocks.ItemsSource = allStocks.SelectMany(x => x);
 
             }
             catch (Exception ex)
