@@ -33,10 +33,20 @@ namespace StockAnalyzer.Windows
             {
                 BeforeLoadingStockData();
 
-                var readAllLinesTask = Task.Run(() =>
+                var readAllLinesTask = Task.Run(async () =>
                 {
-                    var lines = File.ReadAllLines("StockPrices_Small.csv");
-                    return lines;
+                    using (var stream = new StreamReader(File.OpenRead("StockPrices_Small.csv")))
+                    {
+                        var lines = new List<string>();
+                        string line;
+
+                        while ((line = await stream.ReadLineAsync()) != null)
+                        {
+                            lines.Add(line);
+                        }
+
+                        return lines;
+                    }
                 });
 
                 var processedData = readAllLinesTask.ContinueWith(completedTask =>
