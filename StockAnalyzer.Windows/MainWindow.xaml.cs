@@ -56,7 +56,13 @@ namespace StockAnalyzer.Windows
                     });
                 }, TaskContinuationOptions.OnlyOnFaulted);
 
-                var processedData = readAllLinesTask.ContinueWith(completedTask =>
+                var processedData = readAllLinesTask
+                    .ContinueWith(t =>
+                    {
+                        // Log something
+                        return t.Result;
+                    })
+                    .ContinueWith(completedTask =>
                 {
                     var lines = completedTask.Result;
                     var data = new List<StockPrice>();
