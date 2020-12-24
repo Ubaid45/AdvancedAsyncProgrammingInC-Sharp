@@ -61,9 +61,18 @@ namespace StockAnalyzer.Windows
                     var data = service.GetStockPricesFor(identifier, cancellationTokenSource.Token);
                     loadingTasks.Add(data);
                 }
-                var allStocks = await Task.WhenAll(loadingTasks);
+                var allStocks = Task.WhenAll(loadingTasks);
+                var timeoutTask = Task.Delay(2000);
 
-                Stocks.ItemsSource = allStocks.SelectMany(x => x);
+                var completedTask = await Task.WhenAny(allStocks, timeoutTask);
+
+                if(completedTask == timeoutTask)
+                {
+                    cancellationTokenSource.Cancel();
+                    throw new OperationCanceledException("Timeout!");
+                }
+
+                Stocks.ItemsSource = allStocks.Result.SelectMany(x => x);
 
             }
             catch (Exception ex)
