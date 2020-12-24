@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using StockAnalyzer.Core;
 using StockAnalyzer.Core.Domain;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -27,14 +28,17 @@ namespace StockAnalyzer.Windows
         {
             BeforeLoadingStockData();
 
-            using (var client = new HttpClient())
-            {
-                var responseTask =  client.GetAsync($"{API_URL}/{StockIdentifier.Text}");
-                var response = await responseTask;
-                var content = await response.Content.ReadAsStringAsync();
-                var data = JsonConvert.DeserializeObject<IEnumerable<StockPrice>>(content);
+            var store = new DataStore();
+            var responseTask = store.GetStockPrices("MSFT");
+            var data = await responseTask;
+            //using (var client = new HttpClient())
+            //{
+            //    var responseTask =  client.GetAsync($"{API_URL}/{StockIdentifier.Text}");
+            //    var response = await responseTask;
+            //    var content = await response.Content.ReadAsStringAsync();
+            //    var data = JsonConvert.DeserializeObject<IEnumerable<StockPrice>>(content);
                 Stocks.ItemsSource = data;
-            }
+            //}
 
             AfterLoadingStockData();
         }
