@@ -26,73 +26,98 @@ namespace StockAnalyzer.Windows
         }
 
 
+        CancellationTokenSource cancellationTokenSource;
 
         private void Search_Click(object sender, RoutedEventArgs e)
         {
+            if (cancellationTokenSource != null)
+            {
+                // Button has already pressed
+                cancellationTokenSource.Cancel();
+                cancellationTokenSource = null;
+
+                Search.Content = "Search";
+                return;
+
+            }
             try
             {
+                cancellationTokenSource = new CancellationTokenSource();
+                Search.Content = "Cancel";
+
                 BeforeLoadingStockData();
-
-                var readAllLinesTask = Task.Run(async () =>
-                {
-                    using (var stream = new StreamReader(File.OpenRead(" Not StockPrices_Small.csv")))
-                    {
-                        var lines = new List<string>();
-                        string line;
-
-                        while ((line = await stream.ReadLineAsync()) != null)
-                        {
-                            lines.Add(line);
-                        }
-
-                        return lines;
-                    }
-                });
+                Task<List<string>> readAllLinesTask = SearchForStocks(cancellationTokenSource.Token);
 
                 readAllLinesTask.ContinueWith(t =>
                 {
-                    Dispatcher.Invoke(() => {
+                    Dispatcher.Invoke(() =>
+                    {
                         Notes.Text = t.Exception.InnerException.Message;
                     });
                 }, TaskContinuationOptions.OnlyOnFaulted);
 
                 var processedData = readAllLinesTask
-                    .ContinueWith(t =>
-                    {
-                        // Log something
-                        return t.Result;
-                    })
                     .ContinueWith(completedTask =>
-                {
-                    var lines = completedTask.Result;
-                    var data = new List<StockPrice>();
-
-                    foreach (var line in lines.Skip(1))
                     {
-                        var price = StockPrice.FromCSV(line);
-                        data.Add(price);
-                    }
-                    Dispatcher.Invoke(() => {
-                        Stocks.ItemsSource = data.Where(sp => sp.Identifier == StockIdentifier.Text);
-                    });
+                        var lines = completedTask.Result;
+                        var data = new List<StockPrice>();
 
-                }, TaskContinuationOptions.OnlyOnRanToCompletion);
+                        foreach (var line in lines.Skip(1))
+                        {
+                            var price = StockPrice.FromCSV(line);
+                            data.Add(price);
+                        }
+                        Dispatcher.Invoke(() =>
+                        {
+                            Stocks.ItemsSource = data.Where(sp => sp.Identifier == StockIdentifier.Text);
+                        });
+
+                    },
+                    cancellationTokenSource.Token,
+                    TaskContinuationOptions.OnlyOnRanToCompletion,
+                    TaskScheduler.Current);
 
                 processedData.ContinueWith(_ =>
-               {
-                   Dispatcher.Invoke(() => {
-                       AfterLoadingStockData();
-                   });
-               });
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        AfterLoadingStockData();
+                        cancellationTokenSource = null;
+                        Search.Content = "Search";
+                    });
+                });
 
-                
+
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Notes.Text = ex.Message;
             }
 
 
+        }
+
+        private static Task<List<string>> SearchForStocks(CancellationToken cancellationToken)
+        {
+            return Task.Run(async () =>
+            {
+                using (var stream = new StreamReader(File.OpenRead("StockPrices_Small.csv")))
+                {
+                    var lines = new List<string>();
+                    string line;
+
+                    while ((line = await stream.ReadLineAsync()) != null)
+                    {
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            break;
+                        }
+                        lines.Add(line);
+                    }
+
+                    return lines;
+                }
+            }, cancellationToken);
         }
 
         private void BeforeLoadingStockData()
